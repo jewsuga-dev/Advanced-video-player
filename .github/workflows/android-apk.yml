@@ -31,7 +31,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # 4. Set up Android SDK (UPDATED)
+      # 4. Set up Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.4
         with:
@@ -43,25 +43,54 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      # 6. Extract project ZIP
+      # 6. Extract project
       - name: Extract project
         run: |
+          test -f AdvancedVideoPlayer.zip
           unzip -q AdvancedVideoPlayer.zip -d extracted
-          ls -la extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
+          test -d extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
 
-      # 7. Update FFmpeg dependency
+      # 7. Fix missing launcher icon
+      - name: Fix Missing App Launcher Icon
+        working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
+        run: |
+          mkdir -p app/src/main/res/drawable
+
+          cat > app/src/main/res/drawable/ic_launcher.xml <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="48dp"
+              android:height="48dp"
+              android:viewportWidth="48"
+              android:viewportHeight="48">
+
+              <path
+                  android:fillColor="#263238"
+                  android:pathData="M0,0h48v48h-48z"/>
+
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:pathData="M17,10 L38,24 L17,38 Z"/>
+          </vector>
+          EOF
+
+          find app/src/main -type f -name "*.xml" -exec sed -i \
+            's|@mipmap/ic_launcher_round|@drawable/ic_launcher|g; s|@mipmap/ic_launcher|@drawable/ic_launcher|g' {} +
+
+          echo "Launcher icon resource created."
+
+      # 8. Update FFmpeg dependency
       - name: Update FFmpeg dependency
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
           sed -i 's#com.arthenica:ffmpeg-kit-full:6.0-2#dev.ffmpegkit-maintained:ffmpeg-kit-full:6.0.3#' app/build.gradle.kts
 
-      # 8. Build Debug APK
+      # 9. Build Debug APK
       - name: Build Debug APK
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
           gradle --no-daemon assembleDebug
 
-      # 9. Upload APK
+      # 10. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
