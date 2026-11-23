@@ -51,22 +51,59 @@ jobs:
           test -d extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
           
       
-      # Replace original Kotlin files with fixed files from ZIP
+      
       - name: Apply Kotlin fixes
         run: |
           PROJECT="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer"
           DATA="$PROJECT/app/src/main/java/com/advancedvideoplayer/data"
           UI="$PROJECT/app/src/main/java/com/advancedvideoplayer/ui"
 
-          # Replace original files
+          # Replace original source files
           cp "$DATA/MetadataExtractor_fixed.kt" "$DATA/MetadataExtractor.kt"
           cp "$UI/PlayerScreen_fixed.kt" "$UI/PlayerScreen.kt"
 
-          # Remove duplicate fixed files
+          # Correct width and height conversions
+          python3 - <<'PY'
+          import re
+
+          path = "extracted/AdvancedVideoPlayer/AdvancedVideoPlayer/app/src/main/java/com/advancedvideoplayer/data/MetadataExtractor.kt"
+
+          with open(path, "r") as f:
+              code = f.read()
+
+          code, w = re.subn(
+              r"(?m)^(\s*)val width\s*=.*$",
+              r"\1val width = stream.width ?: 0",
+              code
+          )
+
+          code, h = re.subn(
+              r"(?m)^(\s*)val height\s*=.*$",
+              r"\1val height = stream.height ?: 0",
+              code
+          )
+
+          if w != 1 or h != 1:
+              raise SystemExit("Could not find exactly one width and height declaration")
+
+          with open(path, "w") as f:
+              f.write(code)
+
+          print("Width and height fixes applied.")
+          PY
+
+          # Remove duplicate files
           rm -f "$DATA/MetadataExtractor_fixed.kt"
           rm -f "$UI/PlayerScreen_fixed.kt"
 
-          echo "Both Kotlin files replaced successfully"
+          # Verify no old conversions remain
+          if grep -n "toIntOrNull" "$DATA/MetadataExtractor.kt"; then
+            echo "Old conversion still exists!"
+            exit 1
+          fi
+
+          echo "Kotlin fixes verified successfully."
+
 
 
       # 7. Fix missing launcher icon
