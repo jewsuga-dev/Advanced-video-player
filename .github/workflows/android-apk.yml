@@ -42,29 +42,37 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      # 6. Extract project
+      # 6. Extract project ZIP
       - name: Extract project
         run: |
+          set -e
           test -f AdvancedVideoPlayer.zip
           unzip -q AdvancedVideoPlayer.zip -d extracted
-          test -d extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
+
+          PROJECT="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer"
+          test -d "$PROJECT"
+          test -d "$PROJECT/app/src/main"
+
+          echo "Project extracted successfully."
 
       # 7. Apply Kotlin fixes
       - name: Apply Kotlin fixes
         run: |
+          set -e
+
           PROJECT="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer"
           DATA="$PROJECT/app/src/main/java/com/advancedvideoplayer/data"
           UI="$PROJECT/app/src/main/java/com/advancedvideoplayer/ui"
 
-          # Check fixed files exist
+          # Check corrected files exist
           test -f "$DATA/MetadataExtractor_fixed.kt"
           test -f "$UI/PlayerScreen_fixed.kt"
 
-          # Replace original files
+          # Replace original Kotlin files
           cp "$DATA/MetadataExtractor_fixed.kt" "$DATA/MetadataExtractor.kt"
           cp "$UI/PlayerScreen_fixed.kt" "$UI/PlayerScreen.kt"
 
-          # Fix width and height conversions
+          # Correct width and height declarations
           python3 - <<'PY'
           import re
 
@@ -100,16 +108,18 @@ jobs:
           rm -f "$DATA/MetadataExtractor_fixed.kt"
           rm -f "$UI/PlayerScreen_fixed.kt"
 
-          # Verify corrected source
-grep -nF 'val width = stream.width ?: 0' "$DATA/MetadataExtractor.kt"
-grep -nF 'val height = stream.height ?: 0' "$DATA/MetadataExtractor.kt"
+          # Verify width and height fixes
+          grep -nF 'val width = stream.width ?: 0' "$DATA/MetadataExtractor.kt"
+          grep -nF 'val height = stream.height ?: 0' "$DATA/MetadataExtractor.kt"
 
-echo "Kotlin fixes verified successfully."
+          echo "Kotlin fixes verified successfully."
 
       # 8. Fix missing launcher icon
       - name: Fix Missing App Launcher Icon
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
+          set -e
+
           mkdir -p app/src/main/res/drawable
 
           cat > app/src/main/res/drawable/ic_launcher.xml <<'EOF'
@@ -138,7 +148,11 @@ echo "Kotlin fixes verified successfully."
       - name: Update FFmpeg dependency
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
-          sed -i 's#com.arthenica:ffmpeg-kit-full:6.0-2#dev.ffmpegkit-maintained:ffmpeg-kit-full:6.0.3#' app/build.gradle.kts
+          set -e
+
+          sed -i 's#com.arthenica:ffmpeg-kit-full:6.0-2#dev.ffmpegkit-maintained:ffmpeg-kit-full:6.0.3#g' app/build.gradle.kts
+
+          echo "FFmpeg dependency updated."
 
       # 10. Build Debug APK
       - name: Build Debug APK
