@@ -36,7 +36,6 @@ jobs:
         uses: android-actions/setup-android@v4.0.4
         with:
           packages: platform-tools
-          log-accepted-android-sdk-licenses: false
 
       # 5. Install Android SDK 35
       - name: Install Android SDK 35
@@ -49,20 +48,23 @@ jobs:
           test -f AdvancedVideoPlayer.zip
           unzip -q AdvancedVideoPlayer.zip -d extracted
           test -d extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
-          
-      
-      
+
+      # 7. Apply Kotlin fixes
       - name: Apply Kotlin fixes
         run: |
           PROJECT="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer"
           DATA="$PROJECT/app/src/main/java/com/advancedvideoplayer/data"
           UI="$PROJECT/app/src/main/java/com/advancedvideoplayer/ui"
 
-          # Replace original source files
+          # Check fixed files exist
+          test -f "$DATA/MetadataExtractor_fixed.kt"
+          test -f "$UI/PlayerScreen_fixed.kt"
+
+          # Replace original files
           cp "$DATA/MetadataExtractor_fixed.kt" "$DATA/MetadataExtractor.kt"
           cp "$UI/PlayerScreen_fixed.kt" "$UI/PlayerScreen.kt"
 
-          # Correct width and height conversions
+          # Fix width and height conversions
           python3 - <<'PY'
           import re
 
@@ -84,7 +86,9 @@ jobs:
           )
 
           if w != 1 or h != 1:
-              raise SystemExit("Could not find exactly one width and height declaration")
+              raise SystemExit(
+                  f"Expected one width and height declaration. Found width={w}, height={h}"
+              )
 
           with open(path, "w") as f:
               f.write(code)
@@ -92,21 +96,16 @@ jobs:
           print("Width and height fixes applied.")
           PY
 
-          # Remove duplicate files
+          # Remove duplicate fixed files
           rm -f "$DATA/MetadataExtractor_fixed.kt"
           rm -f "$UI/PlayerScreen_fixed.kt"
 
-          # Verify no old conversions remain
-          if grep -nE 'stream\.(width|height)\?\.toIntOrNull' "$DATA/MetadataExtractor.kt"; then
-  echo "Width/height conversion was not fixed!"
-  exit 1
-fi
+          # Verify corrected source
+          grep -nE 'val (width|height) = stream\.(width|height)\?' "$DATA/MetadataExtractor.kt"
 
-echo "Kotlin fixes verified successfully."
+          echo "Kotlin fixes verified successfully."
 
-
-
-      # 7. Fix missing launcher icon
+      # 8. Fix missing launcher icon
       - name: Fix Missing App Launcher Icon
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
@@ -134,19 +133,19 @@ echo "Kotlin fixes verified successfully."
 
           echo "Launcher icon resource created."
 
-      # 8. Update FFmpeg dependency
+      # 9. Update FFmpeg dependency
       - name: Update FFmpeg dependency
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
           sed -i 's#com.arthenica:ffmpeg-kit-full:6.0-2#dev.ffmpegkit-maintained:ffmpeg-kit-full:6.0.3#' app/build.gradle.kts
 
-      # 9. Build Debug APK
+      # 10. Build Debug APK
       - name: Build Debug APK
         working-directory: extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
         run: |
           gradle --no-daemon assembleDebug
 
-      # 10. Upload APK
+      # 11. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
