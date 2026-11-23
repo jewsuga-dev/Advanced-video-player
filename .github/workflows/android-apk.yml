@@ -101,9 +101,10 @@ jobs:
           rm -f "$UI/PlayerScreen_fixed.kt"
 
           # Verify corrected source
-          grep -nE 'val (width|height) = stream\.(width|height)\?' "$DATA/MetadataExtractor.kt"
+grep -nF 'val width = stream.width ?: 0' "$DATA/MetadataExtractor.kt"
+grep -nF 'val height = stream.height ?: 0' "$DATA/MetadataExtractor.kt"
 
-          echo "Kotlin fixes verified successfully."
+echo "Kotlin fixes verified successfully."
 
       # 8. Fix missing launcher icon
       - name: Fix Missing App Launcher Icon
