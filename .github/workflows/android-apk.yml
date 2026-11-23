@@ -49,6 +49,20 @@ jobs:
           test -f AdvancedVideoPlayer.zip
           unzip -q AdvancedVideoPlayer.zip -d extracted
           test -d extracted/AdvancedVideoPlayer/AdvancedVideoPlayer
+          
+      # Replace Kotlin source files
+      - name: Replace Kotlin source files
+        run: |
+          DATA_DIR="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer/app/src/main/java/com/advancedvideoplayer/data"
+          UI_DIR="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer/app/src/main/java/com/advancedvideoplayer/ui"
+
+          cp PlayerScreen_fixed.kt "$UI_DIR/PlayerScreen.kt"
+          cp MetadataExtractor_fixed.kt "$DATA_DIR/MetadataExtractor.kt"
+
+          rm -f "$DATA_DIR/MetadataExtractor_fixed.kt"
+
+          echo "Kotlin files replaced successfully"
+
 
       # 7. Fix missing launcher icon
       - name: Fix Missing App Launcher Icon
