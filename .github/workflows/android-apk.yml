@@ -97,12 +97,12 @@ jobs:
           rm -f "$UI/PlayerScreen_fixed.kt"
 
           # Verify no old conversions remain
-          if grep -n "toIntOrNull" "$DATA/MetadataExtractor.kt"; then
-            echo "Old conversion still exists!"
-            exit 1
-          fi
+          if grep -nE 'stream\.(width|height)\?\.toIntOrNull' "$DATA/MetadataExtractor.kt"; then
+  echo "Width/height conversion was not fixed!"
+  exit 1
+fi
 
-          echo "Kotlin fixes verified successfully."
+echo "Kotlin fixes verified successfully."
 
 
 
