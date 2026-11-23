@@ -25,7 +25,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # 3. Set up Gradle
+      # 3. Set up Gradle 8.9
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -46,10 +46,12 @@ jobs:
       - name: Extract project
         run: |
           set -e
+
           test -f AdvancedVideoPlayer.zip
           unzip -q AdvancedVideoPlayer.zip -d extracted
 
           PROJECT="extracted/AdvancedVideoPlayer/AdvancedVideoPlayer"
+
           test -d "$PROJECT"
           test -d "$PROJECT/app/src/main"
 
@@ -72,7 +74,7 @@ jobs:
           cp "$DATA/MetadataExtractor_fixed.kt" "$DATA/MetadataExtractor.kt"
           cp "$UI/PlayerScreen_fixed.kt" "$UI/PlayerScreen.kt"
 
-          # Correct width and height declarations
+          # Correct width and height types
           python3 - <<'PY'
           import re
 
@@ -83,13 +85,13 @@ jobs:
 
           code, w = re.subn(
               r"(?m)^(\s*)val width\s*=.*$",
-              r"\1val width = stream.width ?: 0",
+              r"\1val width = (stream.width ?: 0L).toInt()",
               code
           )
 
           code, h = re.subn(
               r"(?m)^(\s*)val height\s*=.*$",
-              r"\1val height = stream.height ?: 0",
+              r"\1val height = (stream.height ?: 0L).toInt()",
               code
           )
 
@@ -101,16 +103,16 @@ jobs:
           with open(path, "w") as f:
               f.write(code)
 
-          print("Width and height fixes applied.")
+          print("Width and height converted to Int successfully.")
           PY
 
           # Remove duplicate fixed files
           rm -f "$DATA/MetadataExtractor_fixed.kt"
           rm -f "$UI/PlayerScreen_fixed.kt"
 
-          # Verify width and height fixes
-          grep -nF 'val width = stream.width ?: 0' "$DATA/MetadataExtractor.kt"
-          grep -nF 'val height = stream.height ?: 0' "$DATA/MetadataExtractor.kt"
+          # Verify corrected declarations
+          grep -nF 'val width = (stream.width ?: 0L).toInt()' "$DATA/MetadataExtractor.kt"
+          grep -nF 'val height = (stream.height ?: 0L).toInt()' "$DATA/MetadataExtractor.kt"
 
           echo "Kotlin fixes verified successfully."
 
